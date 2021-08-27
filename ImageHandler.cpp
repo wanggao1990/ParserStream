@@ -39,8 +39,8 @@ bool ImageHandler<T>::GetNewImage(T & copyOfImage, int timoeoutMillSec)
             ret = true;
         }
         else {
-            auto status = cv_.wait_for(lck, std::chrono::milliseconds(timoeoutMillSec));       
-            if(status == std::cv_status::no_timeout) {
+            auto status = cv_.wait_for(lck, std::chrono::milliseconds(timoeoutMillSec), [&]{ return newImgFlag_; });
+            if(status) {
                 copyOfImage = img_;
                 newImgFlag_ = false;
                 ret = true;
