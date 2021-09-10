@@ -1,4 +1,4 @@
-#include "UdpServer.h"
+#include "NetServer.h"
 
 #include <stdio.h>
 
@@ -36,7 +36,7 @@ WSAInit wsaInit;
 #endif
 
 
-UdpServer::UdpServer()
+NetServer::NetServer()
   : fd_(-1), 
     isRunning_(false), 
     cb_(nullptr)
@@ -44,14 +44,16 @@ UdpServer::UdpServer()
 }
 
 
-UdpServer::~UdpServer()
+NetServer::~NetServer()
 {
     Cleanup();
 }
 
-bool UdpServer::Init(const std::string& ip, int port)
+bool NetServer::Init(const std::string& ip, int port, bool tcp)
 {
     std::string portStr = std::to_string(port);
+
+    isTcp_ = tcp;
 
     // check addrinfo
     addrinfo *local = nullptr;
@@ -69,8 +71,12 @@ bool UdpServer::Init(const std::string& ip, int port)
     }
 
     // create socket and bind
-
-    fd_ = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    if(isTcp_) {
+        fd_ = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    }
+    else {
+        fd_ = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    }
     if(fd_ < 0) {
         printf("socket error !");
         return false;
@@ -94,7 +100,7 @@ bool UdpServer::Init(const std::string& ip, int port)
 
     if(bind(fd_, (sockaddr *)&serAddr, sizeof(serAddr)) == SOCKET_ERROR) {
         //printf("bind error !");
-        perror("bind error !");
+        perror("bind error");
         closesocket(fd_);
         return false;
     }
@@ -102,7 +108,7 @@ bool UdpServer::Init(const std::string& ip, int port)
     return true;
 }
 
-bool UdpServer::Start()
+bool NetServer::Start()
 {
     if(isRunning_) {
         printf("Already running.\n");
@@ -110,11 +116,11 @@ bool UdpServer::Start()
     }
 
     isRunning_ = true;
-    readThread_ = std::thread(&UdpServer::ReadThreadFunc, this); 
+    readThread_ = std::thread(&NetServer::ReadThreadFunc, this); 
     return true;
 }
 
-void UdpServer::Stop()
+void NetServer::Stop()
 {
     if(!isRunning_) return;
 
@@ -122,13 +128,13 @@ void UdpServer::Stop()
     readThread_.join();
 }
 
-void UdpServer::Cleanup()
+void NetServer::Cleanup()
 {
     Stop();
     UnInit();
 }
 
-void UdpServer::UnInit()
+void NetServer::UnInit()
 {
     if(fd_ > 0) {
         closesocket(fd_);
@@ -136,7 +142,7 @@ void UdpServer::UnInit()
     }
 }
 
-void UdpServer::ReadThreadFunc()
+void NetServer::ReadThreadFunc()
 {
     const int RECV_BUFFER_MAX_LENGTH = 128000;
     int recvLen = 0;
@@ -145,20 +151,55 @@ void UdpServer::ReadThreadFunc()
     // TODO: 避免多个客户推送流
     // 当有一个客户连接上之后，不再处理其他客户的消息; 一段时间无数据，认为客户断开。
 
-    //sockaddr_in remoteAddr;
-    //int addrLen = sizeof(remoteAddr);
+    //sockaddr_in clientAddr;
+    //int addrLen = sizeof(clientAddr);
 
-    while(isRunning_) 
-    {
-        //recvLen = recvfrom(fd_, recvBuffer, RECV_BUFFER_MAX_LENGTH, 0,(sockaddr *)&remoteAddr, &addrLen);
-        recvLen = recv(fd_, recvBuffer, RECV_BUFFER_MAX_LENGTH, 0);
-        if(recvLen <= 0) {
-            continue;
+    if(isTcp_) {
+
+        listen(fd_, 128);
+
+        while(isRunning_) {
+
+            int cli_fd = accept(fd_, NULL, NULL);
+
+
+            while(isRunning_) {
+
+                //recvLen = recvfrom(fd_, recvBuffer, RECV_BUFFER_MAX_LENGTH, 0,(sockaddr *)&remoteAddr, &addrLen);
+                recvLen = recv(cli_fd, recvBuffer, RECV_BUFFER_MAX_LENGTH, 0);
+                if(recvLen < 0) {
+                    if(errno == EAGAIN || errno == NOERROR) {
+                        Sleep(10);
+                        continue;
+                    }
+                    printf("recv error\n");
+                    return;
+                }
+                else if(recvLen == 0) {
+                    break;
+                }
+                //printf("\rrecv buf len %d  ", recvLen);
+
+                if(cb_)
+                    cb_(reinterpret_cast<uint8_t*>(recvBuffer), recvLen);
+            }
+
+            closesocket(cli_fd);
         }
-        //printf("\rrecv buf len %d  ", recvLen);
-        
-        if(cb_) 
-            cb_(reinterpret_cast<uint8_t*>(recvBuffer), recvLen);
+    }
+    else {
+        while(isRunning_) 
+        {
+            //recvLen = recvfrom(fd_, recvBuffer, RECV_BUFFER_MAX_LENGTH, 0,(sockaddr *)&remoteAddr, &addrLen);
+            recvLen = recv(fd_, recvBuffer, RECV_BUFFER_MAX_LENGTH, 0);
+            if(recvLen <= 0) {
+                continue;
+            }
+            //printf("\rrecv buf len %d  ", recvLen);
+            
+            if(cb_) 
+                cb_(reinterpret_cast<uint8_t*>(recvBuffer), recvLen);
+        }
     }
 
     delete recvBuffer;

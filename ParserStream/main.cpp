@@ -59,94 +59,92 @@ private:
 
 
 
-int testUdpServer()
-{
-    UdpServer* udpServer_ = new UdpServer();
-    udpServer_->Init("192.168.3.100",8000);
-    udpServer_->RegisterCallback([&](const uint8_t* buf, int len) {
-        //if(streamDecoder_)
-        //    streamDecoder_->DecodeBuffer(buf, len);
-        printf("\r recv packet %d", len);
-    });
-    udpServer_->Start();
-
-    getchar();
-    udpServer_->RegisterCallback(NULL);
-    getchar();
-    udpServer_->Cleanup();
-
-    delete udpServer_;
-
-    return 0;
-}
-
-
-int testStreamDecoder()
-{
-    {
-        printf("One ----------------------------------------\n");
-
-        StreamDecoder* streamDecoder_ = new StreamDecoder();
-        streamDecoder_->Init();
-        streamDecoder_->RegisterCallback([](RGBImage img) {
-            printf("\r recv img %dx%d", img.width, img.height);
-        });
-
-        getchar();
-        streamDecoder_->RegisterCallback(NULL);
-        getchar();
-        streamDecoder_->Cleanup();
-        delete streamDecoder_;
-    }
-
-    getchar();
-    printf(" two ----------------------------------------\n");
-
-    {
-        StreamDecoder* streamDecoder_ = new StreamDecoder();
-        streamDecoder_->Init();
-        streamDecoder_->RegisterCallback([](RGBImage img) {
-            printf("\r recv img %dx%d", img.width*img.height);
-        });
-
-        UdpServer* udpServer_ = new UdpServer();
-        udpServer_->Init("192.168.3.100", 8000);
-        udpServer_->RegisterCallback([&](const uint8_t* buf, int len) {
-            //if(streamDecoder_)
-            //    streamDecoder_->DecodeBuffer(buf, len);
-            printf("\r recv packet %d", len);
-        });
-        udpServer_->Start();
+//int testNetServer()
+//{
+//    NetServer* netServer_ = new NetServer();
+//    netServer_->Init("192.168.3.100",8000);
+//    netServer_->RegisterCallback([&](const uint8_t* buf, int len) {
+//        //if(streamDecoder_)
+//        //    streamDecoder_->DecodeBuffer(buf, len);
+//        printf("\r recv packet %d", len);
+//    });
+//    netServer_->Start();
+//
+//    getchar();
+//    netServer_->RegisterCallback(NULL);
+//    getchar();
+//    netServer_->Cleanup();
+//
+//    delete netServer_;
+//
+//    return 0;
+//}
 
 
-        getchar();
-        udpServer_->RegisterCallback(NULL);
-        streamDecoder_->RegisterCallback(NULL);
-        getchar();
-        streamDecoder_->Cleanup();
-        udpServer_->Cleanup();
-
-        delete udpServer_;
-        delete streamDecoder_;
-    }
-
-    return 0;
-}
-
+//int testStreamDecoder()
+//{
+//    {
+//        printf("One ----------------------------------------\n");
+//
+//        StreamDecoder* streamDecoder_ = new StreamDecoder();
+//        streamDecoder_->Init();
+//        streamDecoder_->RegisterCallback([](RGBImage img) {
+//            printf("\r recv img %dx%d", img.width, img.height);
+//        });
+//
+//        getchar();
+//        streamDecoder_->RegisterCallback(NULL);
+//        getchar();
+//        streamDecoder_->Cleanup();
+//        delete streamDecoder_;
+//    }
+//
+//    getchar();
+//    printf(" two ----------------------------------------\n");
+//
+//    {
+//        StreamDecoder* streamDecoder_ = new StreamDecoder();
+//        streamDecoder_->Init();
+//        streamDecoder_->RegisterCallback([](RGBImage img) {
+//            printf("\r recv img %dx%d", img.width*img.height);
+//        });
+//
+//        NetServer* netServer_ = new NetServer();
+//        netServer_->Init("192.168.3.100", 8000);
+//        netServer_->RegisterCallback([&](const uint8_t* buf, int len) {
+//            //if(streamDecoder_)
+//            //    streamDecoder_->DecodeBuffer(buf, len);
+//            printf("\r recv packet %d", len);
+//        });
+//        netServer_->Start();
+//
+//
+//        getchar();
+//        netServer_->RegisterCallback(NULL);
+//        streamDecoder_->RegisterCallback(NULL);
+//        getchar();
+//        streamDecoder_->Cleanup();
+//        netServer_->Cleanup();
+//
+//        delete netServer_;
+//        delete streamDecoder_;
+//    }
+//
+//    return 0;
+//}
 
 int main()
 {
-    //  ffmpeg -re -i xxxxxx.h264 -vcodec copy     -f h264 udp://192.168.3.100:8000
-    //  ffmpeg -re -i xxxxxx.mp4  -vcodec copy -an -f h264 udp://192.168.3.100:8000
+    //  ffmpeg -re -i xxxxxx.h264 -vcodec copy     -f h264 [tcp/udp]://192.168.3.100:8000
+    //  ffmpeg -re -i xxxxxx.mp4  -vcodec copy -an -f h264 [tcp/udp]://192.168.3.100:8000
 
-
-    //return testUdpServer();
+    //return testNetServer();
     //return testStreamDecoder();
 
     using std::placeholders::_1;
     using std::placeholders::_2;
 
-    StreamApp app("192.168.3.100", 8000);
+    StreamApp app("192.168.3.100", 8000, true);
     
     if(0){
         FileHandler filehandle("out.h264");
@@ -163,8 +161,8 @@ int main()
         //app.StartImageStream(cb);
 
         app.StartImageStream([](RGBImage img){
-            printf("\rrecv rgb img %dx%d, bytes %d, data ptr %p         ",
-                   img.height, img.width, img.rawData.size(), img.rawData.data());
+            //printf("\rrecv rgb img %dx%d, bytes %d, data ptr %p         ",
+            //       img.height, img.width, img.rawData.size(), img.rawData.data());
 
             cv::Mat mat(img.height, img.width, CV_8UC3, const_cast<uchar *>(img.rawData.data()));
             cv::imshow("img", mat);

@@ -7,15 +7,15 @@
 
 #include <functional>
 
-using UdpMsgCallback = std::function<void(const uint8_t *, int)>;
+using NetMsgCallback = std::function<void(const uint8_t *, int)>;
 
-class UdpServer
+class NetServer
 {
 public:
-    UdpServer();
-    ~UdpServer();
+    NetServer();
+    ~NetServer();
 
-    bool Init(const std::string& ip, int port);
+    bool Init(const std::string& ip, int port, bool tcp = false);
 
     bool Start();
 
@@ -25,14 +25,15 @@ public:
 
     bool IsRunning() { return isRunning_; }
 
-    void RegisterCallback(UdpMsgCallback f) { cb_ = f; }
+    void RegisterCallback(NetMsgCallback f) { cb_ = f; }
 
 private:
     int fd_;
 
     bool isRunning_;
+    bool isTcp_;
 
-    UdpMsgCallback cb_;
+    NetMsgCallback cb_;
 
     std::thread readThread_;
 

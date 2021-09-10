@@ -2,13 +2,22 @@
 
 #include "Image.h"
 #include "ImageHandler.h"
-#include "StreamDecoder.h"
-#include "UdpServer.h"
+//#include "StreamDecoder.h"
+//#include "NetServer.h"
 
-class StreamApp
+class NetServer;
+class StreamDecoder;
+
+#if defined _WIN32
+#define STREAM_APP_API  _declspec(dllimport)
+#else
+#define STREAM_APP_API
+#endif
+
+class STREAM_APP_API StreamApp
 {
 public:
-    explicit StreamApp(const std::string ip, int port);
+    explicit StreamApp(const std::string ip, int port, bool tcp = false);
     ~StreamApp();
 
     bool NewImageIsReady();
@@ -24,7 +33,9 @@ public:
 private:
     std::string     serverIp_;
     int             serverPort_;
-    UdpServer       *udpServer_;
+
+    bool            tcp_;
+    NetServer       *netServer_;
 
     StreamDecoder   *streamDecoder_;
 };

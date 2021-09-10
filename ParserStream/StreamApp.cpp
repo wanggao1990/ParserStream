@@ -1,10 +1,14 @@
 #include "StreamApp.h"
 
-StreamApp::StreamApp(const std::string ip, int port)
-  : serverIp_(ip),
+#include "StreamDecoder.h"
+#include "NetServer.h"
+
+StreamApp::StreamApp(const std::string ip, int port, bool tcp)
+  : tcp_(tcp),
+    serverIp_(ip),
     serverPort_(port)
 {
-    udpServer_ = new UdpServer();
+    netServer_ = new NetServer();
     streamDecoder_ = new StreamDecoder();
 }
 
@@ -12,14 +16,14 @@ StreamApp::StreamApp(const std::string ip, int port)
 StreamApp::~StreamApp()
 {
     streamDecoder_->RegisterCallback(NULL);
-    udpServer_->RegisterCallback(NULL);
+    netServer_->RegisterCallback(NULL);
 
     streamDecoder_->Cleanup();
-    udpServer_->Cleanup();
+    netServer_->Cleanup();
 
 
-    if(udpServer_) {
-        delete udpServer_;
+    if(netServer_) {
+        delete netServer_;
     }
 
     if(streamDecoder_) {
@@ -39,7 +43,7 @@ bool StreamApp::GetCurrentImage(RGBImage& copyOfImage, int timeoutMillSec)
 
 bool StreamApp::StartImageStream(ImageCallback cb)
 {
-    if(!udpServer_->Init(serverIp_, serverPort_)) {
+    if(!netServer_->Init(serverIp_, serverPort_, tcp_)) {
         printf("Initialize udp server[%s:%d] failed.\n", serverIp_.c_str(), serverPort_);
         return false;
     }
@@ -49,11 +53,11 @@ bool StreamApp::StartImageStream(ImageCallback cb)
         return false;
     }
 
-    udpServer_->RegisterCallback( [&](const uint8_t* buf, int len) {
+    netServer_->RegisterCallback( [&](const uint8_t* buf, int len) {
         if(streamDecoder_)
             streamDecoder_->DecodeBuffer(buf, len); 
     });
-    udpServer_->Start();
+    netServer_->Start();
 
     if(!streamDecoder_->RegisterCallback(cb)) {
         printf("There is issue with decoder\n");
@@ -66,20 +70,20 @@ bool StreamApp::StartImageStream(ImageCallback cb)
 void StreamApp::StopImageStream()
 {
     streamDecoder_->RegisterCallback(NULL);
-    udpServer_->RegisterCallback(NULL);
+    netServer_->RegisterCallback(NULL);
 
     streamDecoder_->Cleanup();
-    udpServer_->Cleanup();
+    netServer_->Cleanup();
 }
 
 bool StreamApp::StartH264Stream(H264Callback cb)
 {
-    if(!udpServer_->Init(serverIp_, serverPort_)) {
-        printf("Initialize udp server[%s:%d] failed.\n", serverIp_.c_str(), serverPort_);
+    if(!netServer_->Init(serverIp_, serverPort_, tcp_)) {
+        printf("Initialize %s server[%s:%d] failed.\n", tcp_?"Tcp":"Udp", serverIp_.c_str(), serverPort_);
         return false;
     }
-    udpServer_->RegisterCallback(cb);
-    udpServer_->Start();
+    netServer_->RegisterCallback(cb);
+    netServer_->Start();
 
     return true;
 }
@@ -87,8 +91,8 @@ bool StreamApp::StartH264Stream(H264Callback cb)
 void StreamApp::StopH264Stream()
 {
     streamDecoder_->RegisterCallback(NULL);
-    udpServer_->RegisterCallback(NULL);
+    netServer_->RegisterCallback(NULL);
 
     streamDecoder_->Cleanup();
-    udpServer_->Cleanup();
+    netServer_->Cleanup();
 }
