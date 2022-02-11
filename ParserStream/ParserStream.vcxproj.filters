@@ -36,6 +36,9 @@
     <ClCompile Include="NetServer.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="H264IdrFrame.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ImageHandler.h">
@@ -54,6 +57,9 @@
       <Filter>RtpSreamParser</Filter>
     </ClInclude>
     <ClInclude Include="NetServer.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="H264IdrFrame.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

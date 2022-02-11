@@ -1,4 +1,4 @@
-#include "StreamDecoder.h"
+ï»¿#include "StreamDecoder.h"
 
 
 StreamDecoder::StreamDecoder()
@@ -17,7 +17,7 @@ StreamDecoder::StreamDecoder()
 
 StreamDecoder::~StreamDecoder()
 {
-    { // ±ÜÃâËÀËø
+    { // é¿å…æ­»é”
         std::lock_guard<std::mutex> lck(mtx_);
         if(cb_) {
             RegisterCallback(nullptr); // thread join()
@@ -44,11 +44,11 @@ bool StreamDecoder::Init()
 
     pCodecCtx_->thread_count = 4;
     //pCodec_ = avcodec_find_decoder_by_name("h264_cuvid");
-    //if(!pCodec_) 
-    pCodec_ = avcodec_find_decoder(AV_CODEC_ID_H264);
+    //if(!pCodec_)
+        pCodec_ = avcodec_find_decoder(AV_CODEC_ID_H264);
     if(!pCodec_ || avcodec_open2(pCodecCtx_, pCodec_, nullptr) < 0) {
         return false;
-    }
+    }  
 
     pCodecParserCtx_ = av_parser_init(AV_CODEC_ID_H264);
     if(!pCodecParserCtx_) {
@@ -72,6 +72,8 @@ bool StreamDecoder::Init()
 
     pSwsCtx_ = nullptr;
 
+    // ffplay -flags2 showall -i xxxx.h264
+    pCodecCtx_->flags2 |= AV_CODEC_FLAG2_SHOW_ALL;   // é…åˆCPUå¯ä»¥è½¯è§£ M300çš„H20ã€FPVç”»é¢
     initSuccess_ = true;
 
     return true;
@@ -197,11 +199,11 @@ typedef struct PES_HEADER {
     uint8_t pes_length_1;    
     uint8_t pes_length_0;    
     
-    /// »ù±¾Á÷ÌØÓĞĞÅÏ¢ 3~259 Byte
-    // 2B Ê¶±ğ±êÖ¾
+    /// åŸºæœ¬æµç‰¹æœ‰ä¿¡æ¯ 3~259 Byte
+    // 2B è¯†åˆ«æ ‡å¿—
     uint16_t identification;
 
-    // 1B pes°üÍ·³¤
+    // 1B pesåŒ…å¤´é•¿
     uint8_t header_data_length;
 
 }PES_HEADER;
@@ -232,7 +234,7 @@ void StreamDecoder::DecodeBuffer(const uint8_t * buf, int len)
 
     //RTP_FIXED_HEADER *rtpHeader = (RTP_FIXED_HEADER *)buf;
     //switch(rtpHeader->payload) {
-
+    
     //    case 96: { // RTP payload: PS        GB28181 96    ffmpeg 98
 
     //        pData += RTP_HEADER_SIZE;
@@ -276,8 +278,8 @@ void StreamDecoder::DecodeBuffer(const uint8_t * buf, int len)
     //                pData += 2;
     //                
     //                printf("PS Stream map: \n");
-    //                //pData += esMapLength;  // ²»½øĞĞ½âÎö
-    //                // ½øĞĞ½âÎö
+    //                //pData += esMapLength;  // ä¸è¿›è¡Œè§£æ
+    //                // è¿›è¡Œè§£æ
     //                for(; pData < elementryStramMapPtr + esMapLength;) {
     //                    uint8_t stream_type = *pData;                       pData += 1;
     //                    uint8_t stream_id = *pData;                         pData += 1;
@@ -304,7 +306,7 @@ void StreamDecoder::DecodeBuffer(const uint8_t * buf, int len)
     //                    PES_HEADER * pesHeader = (PES_HEADER *)pData;
     //                    uint8_t header_data_length = pesHeader->header_data_length;
 
-    //                    //TODO.....  Ò»¸öpacketÊÇ·ñº¬ÓĞ¶à¸öÖ¡
+    //                    //TODO.....  ä¸€ä¸ªpacketæ˜¯å¦å«æœ‰å¤šä¸ªå¸§
 
     //                    //if(pesHeader->start_code == 0xe0010000) {   // video
     //                    if(pData[0] == 0x00 && pData[1] == 0x00 && pData[2] == 0x01 && pData[3] == 0xe0) {
@@ -317,7 +319,7 @@ void StreamDecoder::DecodeBuffer(const uint8_t * buf, int len)
     //                    }
     //                    //if(pesHeader->start_code == 0xc0010000) {   // audio
     //                    else if(pData[0] == 0x00 && pData[1] == 0x00 && pData[2] == 0x01 && pData[3] == 0xc0) {
-    //                        // ²»´¦Àíaudio
+    //                        // ä¸å¤„ç†audio
     //                        printf("====================  ba bb bc c0 (skip) \n");
     //                        return;
     //                    }
@@ -330,7 +332,7 @@ void StreamDecoder::DecodeBuffer(const uint8_t * buf, int len)
     //                PES_HEADER * pesHeader = (PES_HEADER *)pData;
     //                uint8_t header_data_length = pesHeader->header_data_length;
 
-    //                //TODO.....  Ò»¸öpacketÊÇ·ñº¬ÓĞ¶à¸öÖ¡
+    //                //TODO.....  ä¸€ä¸ªpacketæ˜¯å¦å«æœ‰å¤šä¸ªå¸§
 
     //                //if(pesHeader->start_code == 0xe0010000) {   // video
     //                if(pData[0] == 0x00 && pData[1] == 0x00 && pData[2] == 0x01 && pData[3] == 0xe0) {
@@ -343,7 +345,7 @@ void StreamDecoder::DecodeBuffer(const uint8_t * buf, int len)
     //                }
     //                //if(pesHeader->start_code == 0xc0010000) {   // audio
     //                else if(pData[0] == 0x00 && pData[1] == 0x00 && pData[2] == 0x01 && pData[3] == 0xc0) {
-    //                    // ²»´¦Àíaudio
+    //                    // ä¸å¤„ç†audio
     //                    printf("====================  ba c0 (skip) \n");
     //                    return;
     //                }
@@ -355,7 +357,7 @@ void StreamDecoder::DecodeBuffer(const uint8_t * buf, int len)
     //            PES_HEADER * pesHeader = (PES_HEADER *)pData;
     //            uint8_t header_data_length = pesHeader->header_data_length;
 
-    //            //TODO.....  Ò»¸öpacketÊÇ·ñº¬ÓĞ¶à¸öÖ¡
+    //            //TODO.....  ä¸€ä¸ªpacketæ˜¯å¦å«æœ‰å¤šä¸ªå¸§
 
     //            //if(pesHeader->start_code == 0xe0010000) {   // video
     //            if(pData[0] == 0x00 && pData[1] == 0x00 && pData[2] == 0x01 && pData[3] == 0xe0) {
@@ -368,7 +370,7 @@ void StreamDecoder::DecodeBuffer(const uint8_t * buf, int len)
     //            }
     //            //if(pesHeader->start_code == 0xc0010000) {   // audio
     //            else if(pData[0] == 0x00 && pData[1] == 0x00 && pData[2] == 0x01 && pData[3] == 0xc0) {
-    //                // ²»´¦Àíaudio
+    //                // ä¸å¤„ç†audio
     //                printf("====================  c0 (skip)\n");
     //                return;
     //            }
@@ -385,19 +387,19 @@ void StreamDecoder::DecodeBuffer(const uint8_t * buf, int len)
     //        pData += RTP_HEADER_SIZE;
     //        remainingLen -= RTP_HEADER_SIZE;
 
-    //        uint8_t naluHeader = *pData;  // NALU Header »ò FU-A Indicator
+    //        uint8_t naluHeader = *pData;  // NALU Header æˆ– FU-A Indicator
 
     //        uint8_t packetType = *pData & 0x1f;
 
 
 
-    //        if(packetType < 24) {  // NALU Ìí¼Ó 00000001
+    //        if(packetType < 24) {  // NALU æ·»åŠ  00000001
 
-    //            printf("NALU type£º%d \n", packetType);
+    //            printf("NALU typeï¼š%d \n", packetType);
 
     //            pData -= 4;
     //            *(int32_t*)pData = 0x01000000;
-    //            remainingLen += 4;  // Ç°ÒÆÌí¼Ó 00000001
+    //            remainingLen += 4;  // å‰ç§»æ·»åŠ  00000001
     //        }
     //        else if(packetType == 28) {  //
 
@@ -407,16 +409,16 @@ void StreamDecoder::DecodeBuffer(const uint8_t * buf, int len)
     //            uint8_t indE = (fuaHeader & 0x40) >> 6;
     //            printf("FU-A type: %d, S %d, E %d \n", indType, indS, indE);
 
-    //            pData ++; // Ö¸Ïòpayload
+    //            pData ++; // æŒ‡å‘payload
 
-    //            remainingLen -= 2;  // ºóÒÆÁË2Î»  £¬ FU-A Indictor ºÍ FU-A Header
+    //            remainingLen -= 2;  // åç§»äº†2ä½  ï¼Œ FU-A Indictor å’Œ FU-A Header
 
     //            if(indS == 1) {
     //                pData--;
     //                *pData = ( naluHeader & 0xe0 ) | indType;
     //                pData -= 4;
     //                *(int32_t*)pData = 0x01000000;
-    //                remainingLen += 5;  // Ç°ÒÆÌí¼Ó 00000001
+    //                remainingLen += 5;  // å‰ç§»æ·»åŠ  00000001
     //            }
 
     //        }
@@ -435,7 +437,7 @@ void StreamDecoder::DecodeBuffer(const uint8_t * buf, int len)
     ////printf("========== rtpHeader->payload %d\n", rtpHeader->payload);
     ////return;
 
-    static AVPixelFormat rgbPixFormat = AV_PIX_FMT_BGR24;  // ¸ù¾İÇé¿öÑ¡Ôñ  
+    static AVPixelFormat rgbPixFormat = AV_PIX_FMT_BGR24;  // æ ¹æ®æƒ…å†µé€‰æ‹©  
     static int rgbBufferSize;
 
     std::lock_guard<std::mutex> lck(mtx_);
@@ -455,11 +457,26 @@ void StreamDecoder::DecodeBuffer(const uint8_t * buf, int len)
         if(pPacket_->size == 0)
             continue;
 
+
+        //FILE *pfile = fopen("tmp.h264", "wb");
+        //if(pfile) {
+        //    fwrite(pPacket_->data, 1, pPacket_->size, pfile);
+        //}
+        //fclose(pfile);
+
+       // if(pCodecParserCtx_->key_frame)
+            printf("parser size: %d x %d, pci_type %d, keyframe %d\n",
+                   pCodecParserCtx_->width, pCodecParserCtx_->height, pCodecParserCtx_->pict_type, pCodecParserCtx_->key_frame);
+
+        //continue;
+       
+
         // decoded YUV frame
         ret = avcodec_send_packet(pCodecCtx_, pPacket_);
         while(ret >= 0) {
             ret = avcodec_receive_frame(pCodecCtx_, pFrameYUV_);
             if(ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
+                //printf(" codec: %d x %d     ret = %d\n", pCodecCtx_->width, pCodecCtx_->height, ret);
                 break;
             }
             else if(ret < 0) {

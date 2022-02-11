@@ -1,4 +1,4 @@
-#include "StreamApp.h"
+﻿#include "StreamApp.h"
 
 #include "StreamDecoder.h"
 #include "NetServer.h"
@@ -52,6 +52,19 @@ bool StreamApp::StartImageStream(ImageCallback cb)
         printf("There is issue with decoder\n");
         return false;
     }
+
+
+    //////  GDR 测试 H20，1440*1080 (接收码流开始解析前先加载一帧同分辨率全黑的SPS/PPS/IDR)
+    //FILE* iframe_data = NULL;
+    //fopen_s(&iframe_data, "../black_data.264", "rb");
+
+    //char* iframe_buf = new char[8000];
+    //int iframe_len = fread(iframe_buf, 1, 8000, iframe_data);
+    //fclose(iframe_data);
+
+    //streamDecoder_->DecodeBuffer((uint8_t*)iframe_buf, iframe_len);
+    //free(iframe_buf);
+
 
     netServer_->RegisterCallback( [&](const uint8_t* buf, int len) {
         if(streamDecoder_)

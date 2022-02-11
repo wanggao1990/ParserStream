@@ -144,7 +144,7 @@ int main()
     using std::placeholders::_1;
     using std::placeholders::_2;
 
-    StreamApp app("192.168.3.100", 8000, true);
+    StreamApp app("192.168.3.100", 8000, false);  // false
     
     if(0){
         FileHandler filehandle("out.h264");
@@ -165,7 +165,9 @@ int main()
             //       img.height, img.width, img.rawData.size(), img.rawData.data());
 
             cv::Mat mat(img.height, img.width, CV_8UC3, const_cast<uchar *>(img.rawData.data()));
-            cv::imshow("img", mat);
+
+            cv::resize(mat,mat,mat.size()/2);
+            cv::imshow("img size()/2", mat);
             cv::waitKey(1);
         });
 
