@@ -1,5 +1,67 @@
 ﻿#include "StreamDecoder.h"
 
+#define USE_HARDWARE_DECODER
+
+
+#ifdef USE_HARDWARE_DECODER
+
+#include "H264IdrFrame.h"
+class GDRHandler {
+public:
+    GDRHandler()
+        : width_(0),
+        height_(0)
+    {
+    }
+
+    bool needInsertIdrFrame(int width, int height, int keyFrame)
+    {
+        //if(width == 0 || height == 0 ) {
+        //    return false;
+        //}
+
+        // 尺寸发生变化
+        if(width != width_ || height != height_) {
+            width_ = width;
+            height_ = height;
+
+            if(!keyFrame)        // 当前是关键帧，不做处理            
+                return true;
+        }
+
+        return false;
+    }
+
+    void getIdrFrameData(uint8_t **data, uint32_t *len)
+    {
+        IdrFrameType idrFrameType = IDR_FRAME_TYPE_UNKNOWN;
+        if(width_ == 1920 && height_ == 1440) {
+            idrFrameType = IDR_FRAME_TYPE_1920x1440;
+        }
+        else if(width_ == 1920 && height_ == 1080) {
+            idrFrameType = IDR_FRAME_TYPE_1920x1080;
+        }
+        else if(width_ == 1280 && height_ == 720) {
+            idrFrameType = IDR_FRAME_TYPE_1280x720;
+        }
+        else {
+            printf("============================== unknow frame size: %dx%d\n", width_, height_);
+        }
+
+        H264IdrFrame_GetData(idrFrameType, (const uint8_t **)data, len);
+    }
+
+private:
+    int width_;
+    int height_;
+    bool needSpsPps_;
+
+    int threshGop_;
+    int sliceCnt_;
+};
+
+#endif
+
 
 StreamDecoder::StreamDecoder()
   : initSuccess_(false),
@@ -43,9 +105,14 @@ bool StreamDecoder::Init()
     }
 
     pCodecCtx_->thread_count = 4;
-    //pCodec_ = avcodec_find_decoder_by_name("h264_cuvid");
+#ifdef USE_HARDWARE_DECODER
+    pCodec_ = avcodec_find_decoder_by_name("h264_cuvid");
+#else
     //if(!pCodec_)
         pCodec_ = avcodec_find_decoder(AV_CODEC_ID_H264);
+#endif // USE_HARDWARE_DECODER
+
+
     if(!pCodec_ || avcodec_open2(pCodecCtx_, pCodec_, nullptr) < 0) {
         return false;
     }  
@@ -72,7 +139,7 @@ bool StreamDecoder::Init()
 
     pSwsCtx_ = nullptr;
 
-    // ffplay -flags2 showall -i xxxx.h264
+    // ffplay -flags2 showall -i xxxx.h264 可以正常播放GDR视频流
     pCodecCtx_->flags2 |= AV_CODEC_FLAG2_SHOW_ALL;   // 配合CPU可以软解 M300的H20、FPV画面
     initSuccess_ = true;
 
@@ -469,7 +536,16 @@ void StreamDecoder::DecodeBuffer(const uint8_t * buf, int len)
                    pCodecParserCtx_->width, pCodecParserCtx_->height, pCodecParserCtx_->pict_type, pCodecParserCtx_->key_frame);
 
         //continue;
-       
+
+#ifdef USE_HARDWARE_DECODER
+        //// GDR 判断及处理 !!!!!!!!!!!!!
+        static GDRHandler gdrHandler;      
+        bool needInsertIdrFrame = gdrHandler.needInsertIdrFrame(pCodecParserCtx_->width, pCodecParserCtx_->height, pCodecParserCtx_->key_frame);
+        if(needInsertIdrFrame) {
+            //avcodec_flush_buffers(pCodecCtx_);  // 清空解码器中的缓冲    (提前，尺寸变化时修改 ？？？？？？？？？)
+            gdrHandler.getIdrFrameData(&pData, (uint32_t *)&remainingLen);
+        }
+#endif
 
         // decoded YUV frame
         ret = avcodec_send_packet(pCodecCtx_, pPacket_);
